@@ -42,9 +42,13 @@ description: 为书籍或在线课程内容生成定制化的 AI 辅助学习项
 ### 2. 分析内容
 
 **如果是 URL**：
-- 使用 WebFetch 获取内容
+- **优先使用 firecrawl MCP**（如果可用）：检查是否有 `mcp__mcp-server-firecrawl__firecrawl_scrape` 工具
+  - 使用 firecrawl 获取内容更可靠、格式更好
+  - 详见 `references/content-fetching.md` 了解完整的内容获取和保存流程
+- **降级方案**：如果 firecrawl 不可用，使用 WebFetch 获取内容
 - 分析页面结构、章节目录、学习路径
 - 识别内容类型（教程、课程、文档等）
+- **保存内容到项目**：将获取的内容转换为 markdown 并保存到 `/materials/` 目录（详见下文）
 
 **如果是书籍**：
 - 基于书名和你的知识判断内容主题
@@ -81,9 +85,12 @@ description: 为书籍或在线课程内容生成定制化的 AI 辅助学习项
 mkdir -p {output_path}/{project-name}/sessions
 mkdir -p {output_path}/{project-name}/progress
 mkdir -p {output_path}/{project-name}/anki-cards
+mkdir -p {output_path}/{project-name}/materials
 ```
 
-**重要**：所有项目都应包含 `/anki-cards/` 目录用于存储 Anki 卡片。
+**重要**：
+- 所有项目都应包含 `/anki-cards/` 目录用于存储 Anki 卡片
+- 所有项目都应包含 `/materials/` 目录用于存储学习材料（如果提供了 URL）
 
 #### 4.2 根据领域添加额外目录
 
@@ -93,6 +100,27 @@ mkdir -p {output_path}/{project-name}/anki-cards
 - 考试类：添加 `/practice-tests/`、`/formulas/`
 
 **注意**：`/anki-cards/` 是所有项目的标准配置，不属于额外目录。
+
+#### 4.2.1 为空目录添加 .gitkeep
+
+**重要**：为所有空目录创建 `.gitkeep` 文件，防止提交到 git 时目录丢失。
+
+使用 Write 工具在每个空目录中创建 `.gitkeep` 文件：
+
+```
+{output_path}/{project-name}/sessions/.gitkeep
+{output_path}/{project-name}/progress/.gitkeep
+{output_path}/{project-name}/anki-cards/.gitkeep
+{output_path}/{project-name}/materials/.gitkeep (如果该目录初始为空)
+{output_path}/{project-name}/{额外目录}/.gitkeep
+```
+
+`.gitkeep` 文件内容可以是空的，或者添加简单说明：
+```
+# This file ensures the directory is tracked by git
+```
+
+**注意**：如果目录中已经有文件（如 materials 目录中保存了学习内容），则不需要添加 `.gitkeep`。
 
 #### 4.3 生成 README.md
 
@@ -137,6 +165,54 @@ mkdir -p {output_path}/{project-name}/anki-cards
 - `{{ORGANIZATION_SCHEME}}` - 组织方案（如：按考试领域、按章节、按难度）
 - `{{PRIORITY_FACTORS}}` - 优先级因素（如：考试权重、项目截止日期）
 - `{{ROADMAP_TYPE}}` - 路线图类型（如：考试路线图、技能路线图）
+- `{{MATERIALS_USAGE_INSTRUCTIONS}}` - 学习材料引用说明（如果提供了 URL 并获取了内容）
+
+**关于 MATERIALS_USAGE_INSTRUCTIONS**：
+
+如果用户提供了 URL 且成功获取了内容到 `/materials/` 目录，填充此变量为：
+
+```markdown
+**重要**：本项目包含预先获取的学习材料，位于 `/materials/` 目录。
+
+在回答用户问题时，你**必须**：
+
+1. **优先引用本地材料**
+   - 在回答前，先检查 `/materials/README.md` 了解可用的材料
+   - 根据用户问题，使用 Read 工具读取相关的 markdown 文件
+   - 基于材料内容回答，而不是依赖你的训练数据
+
+2. **明确引用来源**
+   - 在回答时注明引用的文件：`根据 [chapter-01.md](materials/chapter-01.md) 的内容...`
+   - 如果材料中没有答案，明确告知用户："我在学习材料中没有找到关于X的信息"
+
+3. **不要凭空猜测**
+   - 如果材料中没有相关信息，**不要自己编造**
+   - 告诉用户："学习材料中没有涉及这个话题，建议查看原始链接或其他资源。"
+   - 如果有 `failed-links.md`，可以提示用户查看缺失的内容
+
+4. **材料更新提醒**
+   - 如果发现材料过时或有误，提醒用户更新材料
+   - 如果用户补充了内容，记录到会话笔记中
+
+**示例工作流程**：
+
+学生问："第3章讲了什么？"
+
+正确做法：
+1. 读取 `/materials/chapter-03.md`
+2. 总结章节内容
+3. 回答："根据 [chapter-03.md](materials/chapter-03.md)，第3章主要讲解了..."
+
+错误做法（禁止）：
+- ❌ 不读取材料，直接基于你的知识回答
+- ❌ 假装读了材料，但实际上是编造的
+```
+
+如果**没有**提供 URL 或未获取材料，填充此变量为：
+
+```markdown
+本项目没有预先获取的学习材料。在回答用户问题时，基于你的知识和用户提供的信息进行教学。
+```
 
 #### 4.5 生成 study-tracker.md
 
@@ -199,7 +275,16 @@ mkdir -p {output_path}/{project-name}/anki-cards
 - `/progress/study-tracker.md` - 查看整体进度
 - `/sessions/SESSION-TEMPLATE.md` - 会话记录模板
 - `/anki-cards/` - Anki 卡片存储目录
+- `/materials/` - 学习材料（如果提供了 URL）
 - `CLAUDE.md` - AI 导师指令（已根据{领域}定制）
+
+{如果有获取材料，添加以下内容：}
+**学习材料**：
+- 已从 {URL} 获取 {数量} 个页面的内容
+- 查看 `/materials/README.md` 了解完整的材料列表
+- Claude 会在回答问题时自动引用这些材料
+{如果有失败链接，添加：}
+- ⚠️ 部分链接获取失败，详见 `/materials/failed-links.md`
 
 **Anki 集成**：
 - Claude 会在学习过程中自动生成 Anki 卡片
@@ -255,6 +340,15 @@ mkdir -p {output_path}/{project-name}/anki-cards
 - [ ] 选择了最合适的领域模板
 - [ ] 根据具体内容调整了结构（不是死板套用）
 - [ ] 创建了 `/anki-cards/` 目录
+- [ ] 创建了 `/materials/` 目录
+- [ ] 为所有空目录添加了 `.gitkeep` 文件
+- [ ] 如果提供了 URL：
+  - [ ] 使用 firecrawl MCP（如果可用）或 WebFetch 获取了内容
+  - [ ] 递归获取了所有相关章节/页面的内容
+  - [ ] 将内容保存为 markdown 文件到 `/materials/` 目录
+  - [ ] 创建了 `/materials/README.md` 索引文件
+  - [ ] 如果有失败的链接，创建了 `failed-links.md` 并添加了说明
+  - [ ] 在 CLAUDE.md 中填充了 `{{MATERIALS_USAGE_INSTRUCTIONS}}` 变量（包含材料引用规则）
 - [ ] 生成了 `anki-config.md` 配置文件
 - [ ] study-tracker.md 反映了实际内容的章节/主题结构
 - [ ] CLAUDE.md 包含了领域特定的导师指导
@@ -285,16 +379,29 @@ mkdir -p {output_path}/{project-name}/anki-cards
 - 内容：算法学习路径
 - 目标：掌握算法面试技能
 
+**内容获取**：
+1. 使用 firecrawl MCP 获取主页面内容
+2. 识别所有章节链接（如：数组篇、链表篇、二叉树篇等）
+3. 并行获取所有章节内容
+4. 保存为 `materials/main.md`、`materials/arrays.md`、`materials/linked-lists.md` 等
+5. 创建 `materials/README.md` 索引所有材料
+6. 在 CLAUDE.md 中添加材料引用规则
+
 **定制化**：
 - 添加 `/solutions/easy/medium/hard/` 目录按难度组织题解
 - 添加 `/patterns/` 目录记录算法模式
-- CLAUDE.md 设置为算法导师角色
+- 添加 `/materials/` 目录存储获取的教程内容
+- CLAUDE.md 设置为算法导师角色，包含材料引用指令
 - study-tracker.md 按难度和模式追踪，包含 LeetCode 题号
 
 ## 常见问题
 
 **Q: 如果 URL 内容获取失败怎么办？**
-A: 回退到基于 URL 模式和你的知识进行合理推断，或要求用户提供内容概述。
+A:
+1. 如果使用 firecrawl 失败，尝试降级到 WebFetch
+2. 如果单个链接失败，记录到 `failed-links.md` 并继续获取其他链接
+3. 如果主页面失败，回退到基于 URL 模式和你的知识进行合理推断
+4. 在 `failed-links.md` 中详细说明失败原因和用户如何手动补充
 
 **Q: 如果书籍太冷门，找不到信息怎么办？**
 A: 请用户简要描述书籍主题和章节结构，基于描述生成项目。

@@ -101,7 +101,15 @@
   /YYYY-MM-DD/
     cards.md        ← Anki 卡片文件
   anki-config.md    ← Anki 配置说明
+/materials/         ← 学习材料（如果提供了 URL）
+  README.md         ← 材料索引
+  main.md           ← 主页面内容
+  chapter-*.md      ← 章节内容
 ```
+
+### 学习材料引用规则
+
+{{MATERIALS_USAGE_INSTRUCTIONS}}
 
 **会话追踪协议 - 三步流程：**
 
