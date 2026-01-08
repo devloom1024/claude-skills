@@ -42,13 +42,22 @@ description: 为书籍或在线课程内容生成定制化的 AI 辅助学习项
 ### 2. 分析内容
 
 **如果是 URL**：
-- **优先使用 firecrawl MCP**（如果可用）：检查是否有 `mcp__mcp-server-firecrawl__firecrawl_scrape` 工具
-  - 使用 firecrawl 获取内容更可靠、格式更好
-  - 详见 `references/content-fetching.md` 了解完整的内容获取和保存流程
-- **降级方案**：如果 firecrawl 不可用，使用 WebFetch 获取内容
-- 分析页面结构、章节目录、学习路径
-- 识别内容类型（教程、课程、文档等）
-- **保存内容到项目**：将获取的内容转换为 markdown 并保存到 `/materials/` 目录（详见下文）
+- **采用按需获取策略**：初始化时只获取目录页，学习时按需获取章节并缓存
+  - **优先使用 firecrawl MCP**（如果可用）：检查是否有 `mcp__firecrawl-mcp__firecrawl_scrape` 工具
+  - **降级方案**：如果 firecrawl 不可用，使用 WebFetch 获取内容
+  - 详见 `references/content-fetching.md` 了解完整的按需获取和缓存流程
+- **初始化阶段**（生成项目时）：
+  - 只获取主页面/目录页内容
+  - 分析页面结构、章节目录、学习路径
+  - 识别并记录所有章节/模块链接
+  - 创建 `materials/README.md` 和 `materials/links-map.json` 索引
+  - 保存目录页为 `materials/main.md`
+  - **不立即获取所有章节内容**（快速初始化）
+- **学习阶段**（由 Claude 在学习时执行）：
+  - 当用户询问某个章节时，检查本地是否已有
+  - 如果没有，使用 firecrawl 按需获取并保存
+  - 如果有，直接读取使用（避免重复获取）
+  - 更新材料索引的获取状态
 
 **如果是书籍**：
 - 基于书名和你的知识判断内容主题
@@ -342,13 +351,15 @@ mkdir -p {output_path}/{project-name}/materials
 - [ ] 创建了 `/anki-cards/` 目录
 - [ ] 创建了 `/materials/` 目录
 - [ ] 为所有空目录添加了 `.gitkeep` 文件
-- [ ] 如果提供了 URL：
-  - [ ] 使用 firecrawl MCP（如果可用）或 WebFetch 获取了内容
-  - [ ] 递归获取了所有相关章节/页面的内容
-  - [ ] 将内容保存为 markdown 文件到 `/materials/` 目录
-  - [ ] 创建了 `/materials/README.md` 索引文件
-  - [ ] 如果有失败的链接，创建了 `failed-links.md` 并添加了说明
-  - [ ] 在 CLAUDE.md 中填充了 `{{MATERIALS_USAGE_INSTRUCTIONS}}` 变量（包含材料引用规则）
+- [ ] 如果提供了 URL（按需获取策略）：
+  - [ ] 使用 firecrawl MCP（如果可用）或 WebFetch 获取了目录页内容
+  - [ ] 分析并识别了所有章节/模块链接
+  - [ ] 将目录页内容保存为 `materials/main.md`
+  - [ ] 创建了 `materials/README.md` 索引文件（列出待获取的章节）
+  - [ ] 创建了 `materials/links-map.json` 链接映射文件
+  - [ ] **没有**立即获取所有章节内容（采用按需获取策略）
+  - [ ] 在 CLAUDE.md 中填充了 `{{MATERIALS_USAGE_INSTRUCTIONS}}` 变量（包含按需获取指令）
+  - [ ] 告知用户采用按需获取策略，学习时自动获取章节内容
 - [ ] 生成了 `anki-config.md` 配置文件
 - [ ] study-tracker.md 反映了实际内容的章节/主题结构
 - [ ] CLAUDE.md 包含了领域特定的导师指导
@@ -379,29 +390,59 @@ mkdir -p {output_path}/{project-name}/materials
 - 内容：算法学习路径
 - 目标：掌握算法面试技能
 
-**内容获取**：
+**内容获取（按需获取策略）**：
+
+**初始化阶段**：
 1. 使用 firecrawl MCP 获取主页面内容
 2. 识别所有章节链接（如：数组篇、链表篇、二叉树篇等）
-3. 并行获取所有章节内容
-4. 保存为 `materials/main.md`、`materials/arrays.md`、`materials/linked-lists.md` 等
-5. 创建 `materials/README.md` 索引所有材料
-6. 在 CLAUDE.md 中添加材料引用规则
+3. 保存主页为 `materials/main.md`
+4. 创建 `materials/README.md` 索引，列出所有待获取的章节：
+   - ⏳ 数组篇 - `arrays.md`
+   - ⏳ 链表篇 - `linked-lists.md`
+   - ⏳ 二叉树篇 - `binary-trees.md`
+   - ... （更多章节）
+5. 创建 `materials/links-map.json` 记录所有链接映射
+6. **不立即获取这些章节**（快速初始化）
+
+**学习阶段**（由 Claude 执行）：
+- 用户问："讲解数组双指针"
+  - Claude 检查 `materials/arrays.md` 是否存在
+  - 如果不存在，从 `links-map.json` 获取 URL
+  - 使用 firecrawl 获取内容并保存
+  - 更新索引文件状态为 ✅
+  - 基于获取的内容回答
+- 用户问："再复习一下数组双指针"
+  - Claude 检查 `materials/arrays.md` 已存在
+  - 直接读取使用（无需再次获取）
 
 **定制化**：
 - 添加 `/solutions/easy/medium/hard/` 目录按难度组织题解
 - 添加 `/patterns/` 目录记录算法模式
-- 添加 `/materials/` 目录存储获取的教程内容
-- CLAUDE.md 设置为算法导师角色，包含材料引用指令
+- 添加 `/materials/` 目录存储按需获取的教程内容
+- CLAUDE.md 设置为算法导师角色，包含按需获取材料的指令
 - study-tracker.md 按难度和模式追踪，包含 LeetCode 题号
+
+**优势**：
+- 项目初始化只需几秒（不需要获取15个章节）
+- 只获取用户实际学习的章节（节省时间和资源）
+- 每个章节只获取一次，后续直接使用
+- 用户可以灵活选择学习顺序
 
 ## 常见问题
 
 **Q: 如果 URL 内容获取失败怎么办？**
 A:
-1. 如果使用 firecrawl 失败，尝试降级到 WebFetch
-2. 如果单个链接失败，记录到 `failed-links.md` 并继续获取其他链接
-3. 如果主页面失败，回退到基于 URL 模式和你的知识进行合理推断
-4. 在 `failed-links.md` 中详细说明失败原因和用户如何手动补充
+**初始化阶段**：
+- 如果主页面获取失败，尝试降级到 WebFetch
+- 如果仍然失败，回退到基于 URL 模式和你的知识进行合理推断
+- 告知用户无法自动获取内容，需要手动补充
+
+**学习阶段**（按需获取时）：
+- 如果单个章节获取失败，记录到 `materials/failed-links.md`
+- 明确告知用户失败原因（超时、404、需要登录等）
+- 提供原始链接供用户手动访问
+- 不要基于猜测或训练数据回答该章节内容
+- 继续正常获取其他章节（一个失败不影响其他）
 
 **Q: 如果书籍太冷门，找不到信息怎么办？**
 A: 请用户简要描述书籍主题和章节结构，基于描述生成项目。
