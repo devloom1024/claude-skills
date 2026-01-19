@@ -28,13 +28,22 @@ description: |
 git status
 git diff --cached
 git diff
+git log --oneline -10
 ```
 
 - `git status` - 查看暂存和未暂存的文件
 - `git diff --cached` - 查看已暂存的更改
 - `git diff` - 查看未暂存的更改
+- `git log --oneline -10` - 查看最近 10 条提交记录，用于推断项目使用的语言
 
-### 2. 智能推断 Type
+### 2. 智能推断语言
+
+分析最近 10 条 commit message，统计中英文使用比例：
+- 如果中文占比超过 50% → 使用中文生成 commit message
+- 如果英文占比超过 50% → 使用英文生成 commit message
+- 如果无法判断（无历史记录）→ 默认使用英文
+
+### 3. 智能推断 Type
 
 基于代码变更自动判断 commit type：
 
@@ -114,10 +123,10 @@ Closes #123
 
 ### 6. 暂存文件并提交
 
-如果有未暂存的文件需要提交：
+将所有未暂存的文件添加到暂存区：
 
 ```bash
-git add <files>
+git add .
 ```
 
 执行提交：
@@ -194,26 +203,27 @@ Closes #156
 1. **仔细分析变更**：不要仅根据文件名判断，需要查看具体的代码变更内容
 2. **type 选择准确**：确保 type 反映变更的真实性质
 3. **subject 简洁明确**：控制在 50 字符内，清晰描述做了什么
-4. **使用中文或英文**：根据项目习惯，优先使用英文
+4. **语言自动推断**：根据历史 commit message 自动判断使用中文或英文，无需用户指定
 5. **询问用户确认**：生成 message 后，向用户展示并询问是否确认提交
-6. **处理冲突**：如果有未暂存的文件，询问用户是否需要一起提交
 
 ## 工作流程总结
 
 ```
-1. 执行 git status + git diff (并行)
+1. 执行 git status + git diff + git log (并行)
    ↓
 2. 分析变更内容
    ↓
-3. 推断 type 和 scope
+3. 推断语言（根据历史 commit）
    ↓
-4. 生成 subject
+4. 推断 type 和 scope
    ↓
-5. 展示给用户确认
+5. 生成 subject
    ↓
-6. 暂存文件 (如需要)
+6. 展示给用户确认
    ↓
-7. 执行 git commit
+7. 执行 git add .
    ↓
-8. 确认成功并展示结果
+8. 执行 git commit
+   ↓
+9. 确认成功并展示结果
 ```
