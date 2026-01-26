@@ -132,21 +132,27 @@ def download(url: str, output_dir: str, format_str: str, api_key: str = None, fi
         # 使用自定义文件名或从 URL 生成
         base_filename = filename if filename else url.replace("https://", "").replace("http://", "").replace("/", "_").replace(".", "_")
 
-        if "markdown" in formats and result.get("markdown"):
+        # 处理 Pydantic Document 对象
+        markdown_content = result.markdown if hasattr(result, 'markdown') else None
+        html_content = result.html if hasattr(result, 'html') else None
+        raw_html_content = result.raw_html if hasattr(result, 'raw_html') else None
+        metadata = result.metadata_dict if hasattr(result, 'metadata_dict') else {}
+
+        if "markdown" in formats and markdown_content:
             md_path = output_path / f"{base_filename}.md"
-            md_path.write_text(result["markdown"], encoding="utf-8")
+            md_path.write_text(markdown_content, encoding="utf-8")
             saved_files.append(str(md_path))
             print(f"已保存 Markdown: {md_path}")
 
-        if "html" in formats and result.get("html"):
+        if "html" in formats and html_content:
             html_path = output_path / f"{base_filename}.html"
-            html_path.write_text(result["html"], encoding="utf-8")
+            html_path.write_text(html_content, encoding="utf-8")
             saved_files.append(str(html_path))
             print(f"已保存 HTML: {html_path}")
 
-        if "rawHtml" in formats and result.get("rawHtml"):
+        if "rawHtml" in formats and raw_html_content:
             raw_path = output_path / f"{base_filename}_raw.html"
-            raw_path.write_text(result["rawHtml"], encoding="utf-8")
+            raw_path.write_text(raw_html_content, encoding="utf-8")
             saved_files.append(str(raw_path))
             print(f"已保存 Raw HTML: {raw_path}")
 
@@ -154,7 +160,7 @@ def download(url: str, output_dir: str, format_str: str, api_key: str = None, fi
             "success": True,
             "url": url,
             "saved_files": saved_files,
-            "metadata": result.get("metadata", {})
+            "metadata": metadata
         }
 
     except Exception as e:

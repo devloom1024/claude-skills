@@ -7,6 +7,10 @@ description: 使用 Firecrawl Python SDK 将网页内容抓取并保存为指定
 
 使用 Firecrawl API 将网页内容下载为 Markdown、HTML 或原始 HTML 格式。
 
+## 并发限制
+
+**不推荐使用并发下载**，Firecrawl API 有速率限制。如需并发，最多 3 个并行请求，并设置适当的延迟。
+
 ## 使用场景
 
 当用户需要：
