@@ -126,7 +126,6 @@ gh search prs "performance" --repo golang/go --sort reactions --state open --lim
 ---
 🔍 搜索条件：<实际执行的 gh search 命令>
 ```
-
 ## 注意事项
 
 - `gh search code` 的查询关键词为必填项，不能为空
@@ -134,3 +133,5 @@ gh search prs "performance" --repo golang/go --sort reactions --state open --lim
 - 代码搜索使用旧版引擎，结果可能与 github.com 网页端不完全一致
 - Star 数等数值字段可用范围表达式：`>1000`、`100..500`
 - 日期字段可用范围表达式：`>2024-01-01`、`2024-01-01..2024-12-31`
+- **搜索结果过少时**：参考 [references/gh-search-guide.md](references/gh-search-guide.md) 中的「扩展策略」，使用关键词扩展、资源列表发现、品牌名搜索等方式扩大范围
+- **搜索结果过多时**：参考同文件中的「精选策略」，使用时间范围过滤、Star 数分级等方式收窄范围

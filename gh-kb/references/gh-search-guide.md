@@ -170,3 +170,88 @@
 # 提取前 N 条结果的特定字段
 --jq '[.[:5] | .[] | {name: .fullName, stars: .stargazersCount}]'
 ```
+
+---
+
+## 搜索策略模式
+
+### 扩展策略（搜索结果过少时）
+
+结果为空或过少时，通过多角度搜索扩大范围。很多项目是多平台通用的，名称/描述中可能不包含目标关键词。
+
+#### 三层关键词扩展
+
+逐层扩大搜索范围：
+
+```bash
+# 第一层：直接关键词
+gh search repos "react state management" --sort stars
+
+# 第二层：生态关联词（同类工具，很多项目同时支持多个）
+gh search repos "redux alternative" --sort stars
+gh search repos "zustand vs jotai" --sort stars
+
+# 第三层：通用概念词（不含具体工具名的通用项目）
+gh search repos "frontend state library" --sort stars
+gh search repos "reactive store javascript" --sort stars
+```
+
+#### 资源列表发现法
+
+先找 awesome 列表等资源汇总，从中发现热门项目：
+
+```bash
+gh search repos "awesome-react-state" --sort stars
+gh search repos "awesome-state-management" --sort stars
+# 从列表中发现热门项目，再针对性搜索
+```
+
+#### 组织名/品牌名搜索
+
+部分热门项目使用独立品牌名，直接搜索关键词会遗漏：
+
+```bash
+# 搜索特定组织的项目
+gh search repos --owner "pmndrs" --sort stars
+
+# 搜索品牌名（如 zustand、jotai 等独立品牌）
+gh search repos "zustand" --sort stars
+```
+
+#### 多关键词并行搜索
+
+多个相关关键词同时搜索，取并集：
+
+```bash
+# 并行执行（通过 Claude 的并行 Bash 调用）
+gh search repos "rust web framework" --sort stars
+gh search repos "rust http server" --sort stars
+gh search repos "rust async web" --sort stars
+```
+
+### 精选策略（搜索结果过多时）
+
+结果过多或需要精选时，通过过滤条件收窄范围。
+
+#### 时间范围过滤
+
+```bash
+# 最近创建的项目（发现新兴工具）
+gh search repos "rust web" --created ">2025-01-01" --sort stars
+
+# 最近更新的项目（发现活跃维护的工具）
+gh search repos "rust web" --updated ">2025-06-01" --sort updated
+```
+
+#### Star 数分级搜索
+
+```bash
+# 顶级项目（成熟稳定）
+gh search repos "rust web" --stars ">1000" --sort stars
+
+# 中等项目（活跃发展中）
+gh search repos "rust web" --stars "100..1000" --sort updated
+
+# 新兴项目（早期但有潜力）
+gh search repos "rust web" --stars "<100" --created ">2025-01-01" --sort created
+```
