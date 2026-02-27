@@ -19,13 +19,20 @@ description: |
 
 # gh-kb: GitHub 知识搜索
 
-前置条件：需要已安装并登录 `gh` CLI（`gh auth status` 可验证）。
+前置条件：需要已安装并登录 `gh` CLI。
 
 ## 工作流
 
 ```
-用户提问 → 意图分析 → 构造命令 → 执行搜索 → 汇总输出
+环境检测 → 用户提问 → 意图分析 → 构造命令 → 执行搜索 → 汇总输出
 ```
+
+### Step 0：环境检测
+
+在执行搜索前，先检测 `gh` 是否可用：
+
+1. 运行 `gh --version`，若失败则告知用户安装地址 https://github.com/cli/cli#installation ，终止流程
+2. 运行 `gh auth status`，若未登录则提示执行 `gh auth login`，终止流程
 
 ### Step 1：意图分析
 
